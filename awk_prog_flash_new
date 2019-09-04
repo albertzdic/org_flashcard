@@ -1,0 +1,30 @@
+#!/bin/bash
+#programma che stampa l'argomento e poi la risposta (awk finale)
+FILENAM="${1:-malattie_last}"
+[ ! -s "argomenti.txt" ] && awk '/^\*\*+ / && !/EZIOLOGIA/ && !/PATOGENESI/ && !/MORFOLOGIA/ && !/MANIFESTAZIONI/ && !/DECORSO CLINICO/ && !/TRATTAMENTO/ && !/DIAGNOSI/ { print }' $FILENAM  > argomenti.txt
+lunghezza_inizio=$( awk '/^\*\*+ / && !/EZIOLOGIA/ && !/PATOGENESI/ && !/MORFOLOGIA/ && !/MANIFESTAZIONI/ && !/DECORSO CLINICO/ && !/TRATTAMENTO/ && !/DIAGNOSI/ { print }' $FILENAM | wc -l | cut -f1 -d " ")
+#inizia il loop
+while true; do
+	ARGOMENTO="$(shuf -n1 argomenti.txt)"
+	#pulire ARGOMENTO senza *
+	ARG_SED="$(  echo "$ARGOMENTO" | cut -f1 -d " " --complement)"
+	sed -i "/$ARG_SED/d" 'argomenti.txt'
+	lunghezza_now=$( wc -l argomenti.txt | cut -f1 -d " ")
+	STAR=$(echo "$ARGOMENTO" | cut -f1 -d " " )
+	echo "$ARGOMENTO"
+	echo "numero di domande fatte $(( $lunghezza_inizio - $lunghezza_now )) "
+	echo " percentuale di completamento $(( 100 * ($lunghezza_inizio - $lunghezza_now) / $lunghezza_inizio ))%"  
+	read -n1
+	awk -v AR="$ARGOMENTO" -v STR="$STAR" ' $0==AR , $0!=AR && substr($1, 0, 1)=="*" && length(STR)>=length($1) { print } ' $FILENAM | head -n -1 | less
+	read -p "sapevi rispondere? si, più o meno, no [1, 2, 3]" -n1 risposta
+	echo -e "\n\n======================================================="
+	case $risposta in
+	#inserire continue con loop
+	    1)  ;;
+	    2) echo "$ARGOMENTO" >> da_rivedere_poco.txt ;;
+	    3) echo "$ARGOMENTO" >> da_rivedere_URGENTE.txt ;;
+	    *) echo "usa un argomento valido" ;;
+	esac
+done
+#awk -v AR="$ARGOMENTO" -v STR="$STAR" ' $0==AR , $0!=AR && length(STR)==length($1) { print } ' $FILENAM
+#awk -v AR="$ARGOMENTO" -v STR="$STAR" ' $0==AR , $0!=AR && \*\*+ / && !/EZIOLOGIA/ && !/PATOGENESI/ && !/MORFOLOGIA/ && !/MANIFESTAZIONI CLINICHE/ && !/DECORSO CLINICO/ && !/TRATTAMENTO/ && !/DIAGNOSI/ { print } ' $FILENAM
